@@ -68,14 +68,10 @@ class App:
         while not self._stop.is_set():
             if self.enabled:
                 try:
-                    root = core.auto.GetRootControl()
-                    for window in root.GetChildren():
+                    # Use the HWND-based discovery so minimized or covered Kiro
+                    # windows (and Kiro's approval popup) are included.
+                    for window in core.iter_kiro_windows():
                         try:
-                            # Chromium apps can show up as a Window or a Pane.
-                            if window.ControlTypeName not in ("WindowControl", "PaneControl"):
-                                continue
-                            if not core.is_kiro_window(window):
-                                continue
                             if core.find_and_click_allow(window):
                                 self.clicks_total += 1
                                 self._refresh_icon()

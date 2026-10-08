@@ -117,6 +117,71 @@ def is_kiro_window(window):
         return False
 
 
+# ---- Window discovery (minimized / covered safe) -----------------------------
+# The old build walked auto.GetRootControl().GetChildren(). Windows drops a
+# MINIMIZED top-level window out of that list, and Kiro's approval popup can be
+# its own top-level window that is not visible. So the old loop never saw them,
+# and the Allow button was never clicked while Kiro was minimized.
+#
+# This build asks Windows for EVERY top-level window with EnumWindows (minimized
+# and invisible ones included), keeps the ones whose process is kiro.exe, and
+# turns each handle into a UI Automation control with ControlFromHandle. A
+# minimized Chromium window's Allow button is still readable and clickable this
+# way (proven on-machine), so no window move, flag, or restore is needed.
+
+def _enum_kiro_hwnds():
+    """Return every top-level window handle that belongs to a kiro.exe process.
+
+    Includes minimized and invisible windows, so Kiro's approval popup is never
+    missed. Returns a list of integer HWNDs.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    hwnds = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def _cb(hwnd, _lparam):
+        try:
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if _process_name_for_pid(pid.value).lower() in KIRO_PROCESS_NAMES:
+                hwnds.append(int(hwnd))
+        except Exception:
+            pass
+        return True
+
+    try:
+        user32.EnumWindows(_cb, 0)
+    except Exception:
+        pass
+    return hwnds
+
+
+def iter_kiro_windows():
+    """Yield a UI Automation control for every Kiro top-level window.
+
+    Uses EnumWindows + ControlFromHandle so minimized or fully covered windows
+    are included. Each control is re-checked to be a kiro.exe window before it
+    is yielded, so no other app is ever touched.
+    """
+    for hwnd in _enum_kiro_hwnds():
+        try:
+            ctrl = auto.ControlFromHandle(hwnd)
+        except Exception:
+            ctrl = None
+        if ctrl is None:
+            continue
+        try:
+            # Re-verify by PID: ControlFromHandle must still point at kiro.exe.
+            if _process_name_for_pid(ctrl.ProcessId).lower() not in KIRO_PROCESS_NAMES:
+                continue
+        except Exception:
+            continue
+        yield ctrl
+
+
 def _click_allow_pass(window, max_depth, click_all=True):
     """
     One depth-capped pass. Clicks exact 'Allow' buttons.
@@ -261,13 +326,8 @@ def find_and_click_allow(window):
 def scan_once():
     clicked_any = False
     try:
-        root = auto.GetRootControl()
-        for window in root.GetChildren():
+        for window in iter_kiro_windows():
             try:
-                if window.ControlTypeName not in ("WindowControl", "PaneControl"):
-                    continue
-                if not is_kiro_window(window):
-                    continue
                 if find_and_click_allow(window):
                     clicked_any = True
                     print(time.strftime("[%H:%M:%S] Clicked 'Allow' in a Kiro window."))
