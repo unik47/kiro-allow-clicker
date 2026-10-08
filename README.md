@@ -8,8 +8,6 @@ It runs quietly in the system tray, uses about **40 MB of RAM**, and clicks
 **only** the `Allow` button. It never clicks `Always allow`, `Deny`, or
 `Always deny`.
 
-![tray icon: a green circle with a white check](docs/icon-preview.png)
-
 ---
 
 ## Why
@@ -39,11 +37,29 @@ does that one click for you, in the background, in any Kiro window.
 - The screen must be **on and unlocked** (a Windows safety rule — no tool can
   click a locked screen).
 
+## Repository layout
+
+```
+kiro-allow-clicker/
+├── src/
+│   ├── kiro_allow_clicker.py   # the tested click engine (console + core logic)
+│   └── tray_app.py             # quiet system-tray version
+├── scripts/
+│   ├── setup.bat               # one-time: installs the Python packages
+│   ├── START.bat               # run the console version
+│   ├── Start Kiro Allow Clicker.vbs   # run the tray version (no window)
+│   └── install_autostart.ps1   # add a Startup-folder shortcut
+├── tests/
+│   └── stress_test.py          # proves zero-miss on a flood of prompts
+├── LICENSE
+└── README.md
+```
+
 ## Install
 
 ```bat
-git clone https://github.com/USERNAME/kiro-allow-clicker.git
-cd kiro-allow-clicker
+git clone https://github.com/unik47/kiro-allow-clicker.git
+cd kiro-allow-clicker\scripts
 setup.bat
 ```
 
@@ -54,17 +70,18 @@ setup.bat
 
 **Background tray version (recommended):**
 
-Double-click `Start Kiro Allow Clicker.vbs`. A small green icon appears near
-your clock. Right-click it for **Pause** and **Quit**.
+Double-click `scripts\Start Kiro Allow Clicker.vbs`. A small green icon appears
+near your clock. Right-click it for **Pause** and **Quit**.
 
 **Simple console version:**
 
-Double-click `START.bat`. A console window stays open and logs each click.
+Double-click `scripts\START.bat`. A console window stays open and logs each
+click. Press `CTRL+ALT+K` to pause or resume.
 
 ## Start automatically at login
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File install_autostart.ps1
+powershell -ExecutionPolicy Bypass -File scripts\install_autostart.ps1
 ```
 
 This adds a shortcut to your Windows Startup folder. To stop auto-start,
@@ -72,7 +89,7 @@ delete `Kiro Allow Clicker.lnk` from your Startup folder.
 
 ## Settings
 
-Open `kiro_allow_clicker.py` and change the values near the top:
+Open `src\kiro_allow_clicker.py` and change the values near the top:
 
 - `TARGET_BUTTON_TEXT` — the button text to click (default `"Allow"`).
 - `BLOCKED_BUTTON_TEXT` — buttons that are never clicked.
@@ -82,11 +99,11 @@ Open `kiro_allow_clicker.py` and change the values near the top:
 
 Each scan clicks **every** Allow button it finds, then looks again right away.
 So if clicking one Allow makes a second Allow appear at the same moment, the
-same scan still catches it. The included `stress_test.py` proves this with a
-flood of prompts.
+same scan still catches it. The included `tests\stress_test.py` proves this
+with a flood of prompts.
 
 ```bat
-python stress_test.py
+python tests\stress_test.py
 ```
 
 ## Safety

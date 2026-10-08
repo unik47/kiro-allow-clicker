@@ -19,3 +19,6 @@ probe.py
 
 # Log file created by the uiautomation package at runtime
 @AutomationLog.txt
+
+# Local login helper (not part of the project)
+.gh_login_start.ps1
