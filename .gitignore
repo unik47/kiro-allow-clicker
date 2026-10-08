@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS / editor junk
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Personal test / probe scripts (not needed by users)
+check_running.py
+measure.py
+run_30s.py
+probe.py
+
+# Log file created by the uiautomation package at runtime
+@AutomationLog.txt
